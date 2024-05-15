@@ -1,3 +1,7 @@
+https://microsoft.github.io/autogen/docs/topics/non-openai-models/local-litellm-ollama/
+
+
+
 apt-get install git 
 sudo apt-get update
 sudo apt-get upgrade -y
