@@ -1,0 +1,2 @@
+Get access Windows files
+takeown /f "C:\Program Files\WindowsApps" /r /d y
