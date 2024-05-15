@@ -1,5 +1,7 @@
+apt-get install git 
 sudo apt-get update
 sudo apt-get upgrade -y
+git clone https://github.com/PixePerfa/UI.git
 sudo apt-get install -y \
     apt-transport-https \
     ca-certificates \
