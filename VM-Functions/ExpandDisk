@@ -1,0 +1,10 @@
+Expand VM Disk using parted (/dev/sda1)
+
+parted /dev/sda
+resizepart 1
+Fix/Ignore? Fix
+Partition number? 1
+Yes/No? Yes
+End? [2146MB]? -0
+(parted) quit
+reboot
