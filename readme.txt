@@ -1,3 +1,4 @@
+vectara-ingest
 https://microsoft.github.io/autogen/docs/topics/non-openai-models/local-litellm-ollama/
 
 
