@@ -8,3 +8,5 @@ Yes/No? Yes
 End? [2146MB]? -0
 (parted) quit
 reboot
+
+More info at https://github.com/tteck/Proxmox/discussions/2072 
