@@ -1,0 +1,254 @@
+import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from typing import List 
+class ReferenceContextInputField(tk.Frame):
+    MAX_FILES = 3
+
+class ReferenceContextInputField(tk.Frame):
+    def __init__(self, master, callback=None, *args, **kwargs):
+        super().__init__(master, *args, **kwargs)
+
+        self._callback = callback
+        self._files = []
+        self._images = {}
+        self._entry = tk.Entry(self, font=("Helvetica", 12))
+        self._entry["state"] = "disabled"
+        self._entry.pack(side="left", fill="both", expand=True)
+        self._attach_button = tk.Button(self, text="+ Attach File", command=self._on_attach_file)
+        self._attach_button.pack(side="left", padx=(10, 0))
+        self._browse_button = tk.Button(self, text="Browse...", state="disabled", command=self._on_browse_reference_folder)
+        self._browse_button.pack(side="left", padx=(10, 0))
+        self._template_menu = tk.Menu(self, tearoff=False)
+        self._template_menu.add_command(label="Save template...")
+        self._template_menu.add_separator()
+        self._template_menu.add_command(label="Load template...")
+        self._template_menu.add_command(label="Clear template...")
+
+        self.bind("<Button-3>", self._show_context_menu)
+
+
+        # Input Field 1: Prompt (Bigger Text Area)
+        self.prompt_label = tk.Label(self, text="Prompt:")
+        self.prompt_label.pack(anchor="w")
+        self.prompt_text = tk.Text(self, height=10, width=50)
+        self.prompt_text.pack(fill="both", padx=10, pady=5)
+
+        # Input Field 2: Reference
+        self.reference_label = tk.Label(self, text="Reference:")
+        self.reference_label.pack(anchor="w")
+        self.reference_entry = tk.Entry(self, font=("Helvetica", 12))
+        self.reference_entry.pack(fill="x", padx=10, pady=5)
+
+        # Input Field 3: Topic
+        self.topic_label = tk.Label(self, text="Topic:")
+        self.topic_label.pack(anchor="w")
+        self.topic_entry = tk.Entry(self, font=("Helvetica", 12))
+        self.topic_entry.pack(fill="x", padx=10, pady=5)
+
+        # Input Field 4: Main Attention
+        self.attention_label = tk.Label(self, text="Main Attention:")
+        self.attention_label.pack(anchor="w")
+        self.attention_entry = tk.Entry(self, font=("Helvetica", 12))
+        self.attention_entry.pack(fill="x", padx=10, pady=5)
+
+        # Process Button
+        self.process_button = tk.Button(self, text="Process", command=self._on_process)
+        self.process_button.pack(pady=10)
+
+    def _show_context_menu(self, event):
+        context_menu = tk.Menu(self, tearoff=0)
+        context_menu.add_command(label="Load Template", command=lambda: self._load_template(event))
+        context_menu.post(event.x_root, event.y_root)
+
+    def _load_template(self, event):
+        selected_text = self.prompt_text.get("sel.first", "sel.last")
+        if selected_text:
+            self.prompt_text.delete("sel.first", "sel.last")
+            self.prompt_text.insert("insert", selected_text)
+
+    def _on_process(self):
+        prompt_text = self.prompt_text.get("1.0", "end-1c")  
+        reference_text = self.reference_entry.get()
+        topic_text = self.topic_entry.get()
+        attention_text = self.attention_entry.get()
+        
+        # Access and use the variables to resolve the Pylance warnings
+        print("Prompt Text:", prompt_text)
+        print("Reference Text:", reference_text)
+        print("Topic Text:", topic_text)
+        print("Attention Text:", attention_text)
+        
+        # Call the preprocess_data function with sample data to demonstrate usage
+        preprocessed_data, preprocessing_steps = preprocess_data(pd.DataFrame(), 0, [], 0.5)
+        
+        # Access and use the preprocessed_data and preprocessing_steps variables to address the Pylance warnings
+        print("Preprocessed Data Shape:", preprocessed_data.shape)
+        print("Preprocessing Steps:", preprocessing_steps)
+
+    def set_value(self, value):
+        self._entry["state"] = "normal"
+        self._entry.delete(0, tk.END)
+        self._entry.insert(0, value)
+        self._entry["state"] = "disabled"
+        self._files[:] = []
+        self._update_image_display()
+        if self._callback:
+            self._callback(value)
+
+    def _update_image_display(self):
+        for img in list(self._images.values()):
+            img.destroy()
+
+        i = 0
+        row = 0
+        col = 0
+        for filename in self._files:
+            try:
+                img = Image.open(filename)
+                img = img.resize((100, 100), resample=Image.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                label = tk.Label(self, image=photo)
+                label.photo = photo
+                label.bind("<Button-3>", lambda e, idx=i: self._on_remove_file(e, idx))
+                label.grid(row=row, column=col, padx=(10, 0))
+                self._images[i] = label
+                col += 1
+                if col >= 3:
+                    col = 0
+                    row += 1
+            except Exception as e:
+                pass
+
+    def handle_file_selection(self, is_folder):
+        if is_folder:
+            folderpath = filedialog.askdirectory(title='Select Folder containing Reference Material')
+            if folderpath:
+                supported_files = ('.pdf', '.jpg', '.jpeg', '.png')
+                filenames = [f for f in os.listdir(folderpath) if f.endswith(supported_files)]
+                for f in filenames:
+                    self.append_file(os.path.join(folderpath, f))
+        else:
+            filetypes = (
+                ('Images', '*.png *.jpg *.jpeg'),
+                ('PDF Files', '*.pdf'),
+                ('All Files', '*.*')
+            )
+            filepath = filedialog.askopenfilenames(title='Select Files to Upload', filetypes=filetypes)
+            for f in filepath:
+                self.append_file(f)
+
+
+    def append_file(self, filename):
+        if len(self._files) < self.MAX_FILES:
+            self._files.append(filename)
+            self._update_image_display()
+
+    def remove_file(self, index):
+        if 0 <= index < len(self._files):
+            del self._files[index]
+            self._update_image_display()
+
+    def _update_image_display(self):
+        for img in list(self._images.values()):
+            img.destroy()
+
+        i = 0
+        row = 0
+        col = 0
+        for filename in self._files:
+            try:
+                img = Image.open(filename)
+                img = img.resize((100, 100), resample=Image.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                label = tk.Label(self, image=photo)
+                label.photo = photo
+                label.bind("<Button-3>", lambda e: self._on_remove_file(e, len(self._files)-1))
+                label.grid(row=row, column=col, padx=(10, 0))
+                self._images[len(self._files)-1] = label
+                col += 1
+                if col >= 3:
+                    col = 0
+                    row += 1
+            except Exception as e:
+                pass
+
+    def _on_attach_file(self):
+        filetypes = (
+            ('Images', '*.png *.jpg *.jpeg'),
+            ('PDF Files', '*.pdf'),
+            ('All Files', '*.*')
+        )
+        filepath = filedialog.askopenfilenames(title='Select Files to Upload', filetypes=filetypes)
+        for f in filepath:
+            self.append_file(f)
+
+    def _on_browse_reference_folder(self):
+        folderpath = filedialog.askdirectory(title='Select Folder containing Reference Material')
+        if folderpath:
+            filenames = os.listdir(folderpath)
+            pdf_filenames = [f for f in filenames if f.endswith('.pdf')]
+            jpg_filenames = [f for f in filenames if f.endswith(('.jpg', '.jpeg'))]
+            png_filenames = [f for f in filenames if f.endswith('.png')]
+            for f in pdf_filenames:
+                self.append_file(os.path.join(folderpath, f))
+            for f in jpg_filenames+png_filenames:
+                self.append_file(os.path.join(folderpath, f))
+    def _on_remove_file(self, event, index):
+        self.remove_file(index)
+
+def preprocess_data(data: pd.DataFrame, num_numeric_cols: int, cat_columns: List[str], missing_threshold: float = 0.5) -> tuple[pd.DataFrame, dict]:
+    """
+    Preprocess the given dataset using specified methods.
+
+    Args:
+        data (pd.DataFrame): Raw dataset to preprocess.
+        num_numeric_cols (int): Number of purely numerical columns.
+        cat_columns (List[str]): Names of categorical columns.
+        missing_threshold (float, optional): Minimum proportion of non-null values in a column for inclusion. Defaults to 0.5.
+
+    Returns:
+        preprocessed_data (pd.DataFrame): Cleaned and prepared dataset.
+        preprocessing_steps (dict): Details of applied transformations.
+    """
+
+    # Handle Missing Values
+    preprocessing_steps = {"Missing Value Imputation": {}}
+    for col in data.columns:
+        null_ratio = round(sum(data[col].isna()) / len(data), ndigits=4)
+        if null_ratio > missing_threshold:
+            mean_val = np.mean(data[col]) if data[col].dtype != object else None
+            median_val = np.median(data[col]) if data[col].dtype != object else None
+            mode_val = data[col].mode()[0] if data[col].dtype == object else None
+            frequent_val = max([(data[col].value_counts()[v]/len(data)) for v in data[col].unique()], key=lambda x: x[1])[0] \
+                if data[col].dtype == object else None
+            if data[col].dtype == "object" and null_ratio == 1.0:
+                data[col].fillna(frequent_val, inplace=True)
+            elif num_numeric_cols > 0 and data[col].dtype != "object":
+                data[col].fillna(mean_val, inplace=True)
+            elif data[col].dtype == "object":
+                data[col].fillna(mode_val, inplace=True)
+        preprocessing_steps["Missing Value Imputation"][col] = {
+            "missing_percentage": null_ratio,
+            "method": "Mean Imputation" if mean_val else ("Median Imputation" if median_val else ("Mode Imputation" if mode_val else "Frequency Imputation"))
+        }
+    scaler = StandardScaler()
+    preprocessing_steps["Numeric Scaling"] = {}
+    data.iloc[:, :num_numeric_cols] = pd.DataFrame(scaler.fit_transform(data.iloc[:, :num_numeric_cols]), columns=data.iloc[:, :num_numeric_cols].columns)
+    for col in data.columns[:num_numeric_cols]:
+        preprocessing_steps["Numeric Scaling"][col] = {}
+    preprocessing_steps["One-Hot Encoding"] = {}
+    ohe = OneHotEncoder(sparse=False, handle_unknown='ignore')
+    encoded_cat_features = pd.DataFrame(ohe.fit_transform(data[cat_columns]))
+    encoded_cat_features.columns = ohe.categories_[0] + ['_encoded']
+    data = pd.concat([data.drop(cat_columns, axis=1), encoded_cat_features], axis=1)
+    return data, {}
+
+root = tk.Tk()
+root.title("Sample UI")
+reference_input_field = ReferenceContextInputField(root)
+reference_input_field.pack(padx=20, pady=20)
+root.mainloop()
