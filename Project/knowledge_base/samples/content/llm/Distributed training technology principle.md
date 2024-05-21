@@ -1,0 +1,74 @@
+# Principles of distributed training technology
+- Data parallelism
+    - FSDP
+        - The FSDP algorithm is powered by ZeroRedundancyOptimizer technology from DeepSpeed, but the modified design and implementation are consistent with the other components of PyTorch. FSDP breaks down model instances into smaller units, and then flattens and shards all parameters within each cell. The sharding parameters communicate and recover on demand before computation, and are discarded immediately after computation is completed. This approach ensures that FSDP only needs to implement the parameters of one unit at a time, which greatly reduces peak memory consumption. (Data Parallelism + Parameter Splitting)
+    - DDP
+        - DistributedDataParallel (DDP), **which maintains a copy of the model on each device and synchronizes the gradient with a collective AllReduce operation passed backwards, ensuring model consistency across replicas during training** . To speed up training, **DDP overlaps gradient communication with backward computation** , facilitating concurrent execution of workloads on different resources. 
+    - ZeRO
+        - Model state
+            - Optimizer->ZeRO1
+                - Divide the optimizer state into several parts, one for each GPU
+                - Each GPU stores a complete parameter W, after a round of foward and backward, each gets a gradient, and does an **AllReduce (reduce-scatter + all-gather)** ** on the gradient to get the complete gradient Gto do an All-Gather with W**
+            - Gradient+Optimzer->ZeRO2
+                - Each GPU maintains one gradient
+                - Each GPU stores a complete parameter W, and after a round of foward and backward,  a **complete gradient is calculated, and the gradient is Reduce-Scatter once to ensure that the gradient maintained on each GPU is an aggregate gradient, and each GPU updates the corresponding W with its own corresponding O and G. After the update is completed, each GPU maintains an updated W. In the same way, do an All-Gather on W and sync W from other GPUs to yourself**
+            - Parameter+Gradient+Optimizer->ZeRO3
+                - Each GPU maintains a piece of model state
+                - Only part of the parameters W are stored on each GPU, and when forward, **do an All-Gather on W to ** retrieve the W distributed on other GPUs to get a complete W **When you do backward, do an All-Gather on W to retrieve the full W, and when backward is done, immediately discard W that you don't maintain. After doing backward, calculate a complete gradient G, do a Reduce-Scatter on G, aggregate the part of the gradient that you maintain from other GPUs, and immediately discard the G that you don't maintain after the aggregation operation. With O and G which I maintain, I update W. Since only part of the W is maintained, there is no need to do any AllReduce operations on the W**
+        - Residual state
+            - activation->Partitioned Activation Checkpointing
+                - Only part of the activation is maintained on each GPU, and it can be aggregated from elsewhere if needed. It should be noted that the occupation of video memory by activation is generally much higher than that of the model itself, and the traffic is also huge
+            - temporary buffer->Constant Size Buffer
+                - Improve bandwidth utilization. As the number of GPUs increases, so does the number of GPUs that can communicate with each other, and the amount of traffic may decrease each time (but the total amount of traffic will not change). If the data slices are small, the bandwidth will not be used well. So this buffer plays a role in accumulating data: wait for the data to accumulate to a certain size, and then communicate.
+                - Make the storage size controllable. Before each communication, the accumulated storage size is constant and is known to be controllable. It is more convenient for users to estimate the storage consumption and communication time in training
+            - unusable fragment->Memory Defragmentation
+                - Reorganize the fragmented storage space to create a continuous storage space. Prevent storage requests from failing caused by sufficient total storage but insufficient continuous storage
+        - offload
+            - ZeRO-Offload
+                - **Forward and backward are computationally intensive** , so the parts related to them, such as the parameter W (fp16) and activation, are all put into the GPU
+                - **The update part is computationally low** , so all the parts related to it are put into the CPU. Examples include W (fp32), optimizer states (fp32) and gradients (fp16), among others
+                - ZeRO-Offload is divided into two parts: Offload Strategy and Offload Schedule, the former solves the problem of how to divide the model between the GPU and the CPU, and the latter solves the problem of how to schedule computation and communication
+            - ZeRO-Infinity
+                - The first is to extend the combination of offload and ZeRO from ZeRO-2 to ZeRO-3, which solves the problem that model parameters are limited by a single GPU memory
+                - Second, it solves the problem that ZeRO-Offload is inefficient when the training batch size is small
+                - The third is to further try to use NVMe space in addition to CPU memory
+- Models are parallel
+    - tensor-wise parallelism
+        - MLP sharding
+            - Split the first linear layer into columns and the second linear layer into rows
+            -  ![Pictures](./img/分布式训练技术原理-幕布图片-36114-765327.jpg)
+            -  ![Pictures](./img/分布式训练技术原理-幕布图片-392521-261326.jpg)
+            -  ![Pictures](./img/分布式训练技术原理-幕布图片-57107-679259.jpg)
+        - Self-attention segmentation
+            - Attention's multi-head computation is naturally suitable for tensor parallelism, because each head can be computed independently and the result can be concated at the end, so that **the parameters of each head can be put on a GPU**
+            - For linear layers, **follow the "row cut".** The cutting method is basically the same as that of the MLP layer, and its forward and backward principles are also the same
+        - Enter layer embedding sharding
+            - For positional embedding, the max_s itself isn't too long, so having one copy on each GPU doesn't put too much pressure on the video memory
+            - Split word embedding into different GPUs, and each GPU maintains a partial vocabulary. When you enter X to search on the GPU, the word vector will be returned normally if it can be found, and all the pixels in the word vector will be set to 0 if it cannot be found. After searching in this way, the data on each GPU can be AllReduce once to get the final input.
+            -  ![Image](./img/分布式训练技术原理-幕布图片-220157-552735.jpg)
+        - Output layer Embedding sharding
+            - **The input and output layers share the same word embedding**
+            - **We don't have to worry about this when the input layer to the input layer of the model is on a single GPU (i.e. pipeline parallel depth = 1) (which is also the case with most parallel projects with Megatron in practice). However, if the input and output layers of the model are on different GPUs, we need to make sure that the word embedding gradient on the two GPUs is AllReduce before the weights are updated** . 
+            -  ![Image](./img/分布式训练技术原理-幕布图片-42284-124759.jpg)
+        - cross-entroy
+            -  ![Image](./img/分布式训练技术原理-幕布图片-124076-270516.jpg)
+            -  ![Image](./img/分布式训练技术原理-幕布图片-838373-426344.jpg)
+    -  [pipeline paralelism]("https://zhuanlan.zhihu.com/p/629637468")
+        - GPipe
+        - PipeDream
+        - 1F1B
+            - Each GPU performs the forward and reverse processes of each micro batch in an alternating fashion to free up its occupied memory as early as possible, thereby reducing the memory footprint
+                -  ![Pictures](./img/分布式训练技术原理-幕布图片-20096-279847.jpg)
+            - 1F1B does not reduce the bubble time, in **order to further reduce the bubble time, Megatron proposes the interleaved 1F1B mode** 。 That is, each GPU was originally responsible for the calculation of 4 consecutive layers, but now it is responsible for the calculation of 2 consecutive layers, which is only half of the original, so the bubble time has also become half of the original, that is, the continuous layers on a device are divided into several discontinuous layers, and the number of responsibilities remains the same, but the order has changed. 
+                -  ![Image](./img/分布式训练技术原理-幕布图片-618350-869132.jpg)
+        - DAPPLE
+            -  ![Image](./img/分布式训练技术原理-幕布图片-906937-836104.jpg)
+    - layer-wise parallelism
+    - sequence parallelism
+        - The benefit of sequence parallelism is that it does not increase the amount of traffic and can greatly reduce the memory footprint
+        - Layer-norm and dropout are independent along the dimension of the sequence, so they can be split by the sequence dimension
+        - After using Sequence parallelism, the memory usage is still very large for very large-scale models. Therefore, Megatron has introduced the activation recalculation technology to find some operators with a small amount of computation but a large amount of video memory, such as Softmax, Dropout and other operators in Attention, and the activation recalculation of these operators can significantly reduce the video memory and increase the computational overhead slightly
+- MoE
+    - The core idea: split the large model into multiple small models. Each sample only needs to activate part of the expert model for calculation, which greatly saves computing resources. **The basic idea of MoE is to trade width for depth, because the deeper the model, the more layers of computation, and the longer the inference time**
+    - Hard Gate MoE
+    - Sparse MoE

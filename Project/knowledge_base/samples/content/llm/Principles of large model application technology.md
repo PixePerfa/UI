@@ -1,0 +1,97 @@
+# Principles of large model application technology
+- RAG
+    - Vector database [comparison]("https://www.jianshu.com/p/43cc19426113")
+        - Selection criteria
+            - Open Source vs. Closed Source vs. The source code is visible
+            - Client/SDK language
+            - Escrow method
+                - self-hosted/on-premise
+                    - redis,pgvector,milvus
+                - managed/cloud-native
+                    - zilliz,pinecone
+                - embeded+cloud-native
+                    - chroma,lanceDB
+                - self-hosted+cloud-native
+                    - vald,drant,weaviate,vspa,elasticsearch
+            - Indexing methods
+                -algorithm
+                    - Flat
+                    - Tree-based
+                        - Annoy(Approximate Nearest Neighbors Oh Yeah)
+                        - KD-Tree
+                        - Trinary Projection Trees
+                    - IVF
+                        - IVF
+                        - IVMF(Inverted Multi-index File)
+                    - Graph-based
+                        - HNSW
+                        - NSG
+                        - Vamana(DiskANN)
+                            -  ![Pictures](./img/大模型应用技术原理-幕布图片-793118-735987.jpg)
+                            -  ![Pictures](./img/大模型应用技术原理-幕布图片-580318-260070.jpg)
+                    - Hashing-based
+                        - LSH
+                        - Spherical Hashing
+                        - Spectral Hashing
+                -quantify
+                    - PQ（Product Quantization）
+                        - PQ decomposes the feature space into Cartesian products of multiple low-dimensional subspaces, and then quantizes each subspace individually
+                    - SQ（Scalar Quantization）
+                        - SQ is a number that quantizes each dimension into a specified number of digits
+        - Mainstream schemes
+            - professional
+                - weaviate
+                    - 1. Extensive documentation and easy to get started
+                    - 2. Hybrid indexes are available
+                    - 3. Support self-hosting + cloud native
+                    - 4.Support python, js, ts, go, java and other clients
+                    - 5. Supports HNSW, HNSW-PQ, DisANN, etc
+                - chroma
+                - LanceDB
+                - pinecone
+                    - 1. Completely cloud-native, it's very easy to get started
+                    - 2. Self-managed compound indexes
+                - faiss
+                    - 1.An open-source project from Meta AI (formerly Facebook Research).
+                    - 2.Both CPU and GPU devices are supported
+                    - 3. Support C++, python, go and other clients
+                    - 4. Support common indexing methods, such as IVF, HNSW, and PQ quantification
+                    - 5. in-memory run
+                    - 6. self-hosted
+                - milvus
+                    - 1. High scalability is achieved through a combination of brokers, load balancers, message brokers, Kafka, and Kubernetes, which makes the entire system very complex and resource-intensive
+                    - 2. As of 2023, it is the only major vendor that offers a working DiskANN implementation
+                    - 3. Scalar field filtering is supported in the vector similarity retrieval process to achieve hybrid query
+                    - 4. It adopts ** the architecture design of separation of storage and computing**
+                    - 5. Provide language SDKs such as python, juava, go, node.js, etc., and also provide in-molecular operation such as milvus lite
+                    - 6. A graphical interface client is provided
+            - traiditional
+                - ES
+                - redis
+                - pgvector
+    - Embedding model
+        - bi-encoder
+        - cross-encoder
+    - Optional: Text search engine
+        - ElasticSearch
+        - OpenSearch
+    - Optional: Graph database
+    - Retrieval
+        - Vector retrieval
+        - Keyword search
+            - BM25
+        - NL2Cypher
+        - NL2SQL
+    - RAG enhancement
+        - Self-RAG
+            - Frame.
+                - Self-Reflective Retrieval-Augmented Generation (Self-RAG). This is a new framework that not only adaptively retrieves paragraphs as needed (i.e., the model can judge whether retrieval enhancements are necessary), but also introduces special tokens called reflection tokens to make the LM controllable during the inference phase.
+                -  ![Pictures](./img/大模型应用技术原理-幕布图片-108319-429731.jpg)
+                -  ![Pictures](./img/大模型应用技术原理-幕布图片-918388-323086.jpg)
+            - training
+                - First, the critic is trained to use the retriever's retrieved passages and reflect on the token-enhanced instruction-output data, and then, the generator LM is trained using the standard next token prediction target to learn to generate continuations as well as special tokens (used to retrieve or critique their own generated content).
+            - illation
+                - It adaptively uses a retrieval token for retrieval, so the model can spontaneously determine whether a retrieval is necessary. It introduces multiple fine-grained criticism tokens that are used to evaluate the quality of various aspects of the generated content. During the generation process, the authors perform a layer-level beam search using linear interpolation of the expected critical token probabilities to determine the optimal K continuation scheme at each time step
+- Agent
+    - function call
+        - ToolFormer

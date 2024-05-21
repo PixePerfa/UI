@@ -1,0 +1,44 @@
+# Large Model Technology Stack - Practical Combat and Application
+- Training framework
+    - deepspeed
+    - megatron-lm
+    - colossal-ai
+    - trlx
+- Inference framework
+    - triton
+    - vllm
+    - text-generation-inference
+    - lit-llama
+    - lightllm
+    - TensorRT-LLM (formerly FasterTransformer)
+    - fastllm
+    - inferllm
+    - llama-cpp
+    - openPPL-LLM
+- Compress the frame
+    - bitsandbytes
+    - auto-gptq
+    - deepspeed
+- embedding framework
+    - sentence-transformer
+    - FlagEmbedding
+- Vector Database [Vector database comparison]("https://www.jianshu.com/p/43cc19426113")
+    - faiss
+    - pgvector
+    - milvus
+    - pinecone
+    - weaviate
+    - LanceDB
+    - Chroma
+- Apply the framework
+    - Auto-GPT
+    - langchain
+    - llama-index
+    - quivr
+- Python front-end
+    - streamlit
+    - gradio
+- python API tools
+    - FastAPI+uvicorn
+    - flask
+    - Django
