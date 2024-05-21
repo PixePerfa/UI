@@ -1,6 +1,5 @@
 import os
 
-# The knowledge base is used by default
 DEFAULT_KNOWLEDGE_BASE = "samples"
 
 # Default vector library/full-text search engine type. Optional: faiss, milvus (offline) & zilliz (online), pgvector, chromadb full-text search engine es
