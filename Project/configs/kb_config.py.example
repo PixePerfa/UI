@@ -1,0 +1,146 @@
+import os
+
+# The knowledge base is used by default
+DEFAULT_KNOWLEDGE_BASE = "samples"
+
+# Default vector library/full-text search engine type. Optional: faiss, milvus (offline) & zilliz (online), pgvector, chromadb full-text search engine es
+DEFAULT_VS_TYPE = "faiss"
+
+# Number of cached vector libraries (for FAISS)
+CACHED_VS_NUM = 1
+
+# Number of cached temporary vector libraries (for FAISS) for file conversations
+CACHED_MEMO_VS_NUM = 10
+
+# Single-paragraph text length in the knowledge base (not applicable to MarkdownHeaderTextSplitter)
+CHUNK_SIZE = 250
+
+# The length of adjacent text in the knowledge base coincides (not applicable to MarkdownHeaderTextSplitter)
+OVERLAP_SIZE = 50
+
+# The number of matching vectors in the knowledge base
+VECTOR_SEARCH_TOP_K = 3
+
+# The distance threshold of knowledge base matching generally ranges from 0 to 1, and the smaller the SCORE, the smaller the distance and the higher the relevance.
+# HOWEVER, SOME USERS HAVE REPORTED THAT THEY HAVE ENCOUNTERED A MATCHING SCORE OF MORE THAN 1, WHICH IS SET TO 1 BY DEFAULT FOR COMPATIBILITY, AND THE ADJUSTMENT RANGE IS 0-2 IN THE WEBUI
+SCORE_THRESHOLD = 1.0
+
+# Default search engine. Optional: Bing, DuckDuckGo, Metaphor
+DEFAULT_SEARCH_ENGINE = "duckduckgo"
+
+# The number of search engine matching closures
+SEARCH_ENGINE_TOP_K = 3
+
+
+# Bing searches for prerequisite variables
+# Bing Subscription Key is required to use Bing Search, and you need to apply for a trial of Bing Search in Azure Port
+# Please refer to the application method for details
+# https://learn.microsoft.com/en-us/bing/search-apis/bing-web-search/create-bing-search-service-resource
+# Use Python to create a Bing API search instance For details, see the following:
+# https://learn.microsoft.com/en-us/bing/search-apis/bing-web-search/quickstarts/rest/python
+BING_SEARCH_URL = "https://api.bing.microsoft.com/v7.0/search"
+# Note that it is not the api key of bing Webmaster Tools,
+
+# In addition, if it is on a server, report Failed to establish a new connection: [Errno 110] Connection timed out
+# It's because the server has a firewall, you need to contact the administrator to add a whitelist, if the company's server, don't think about GG
+BING_SUBSCRIPTION_KEY = ""
+
+# KEY is required for metaphor search
+METAPHOR_API_KEY = ""
+
+# Know the Weather API KEY, which is used for the Weather Agent. Application: https://www.seniverse.com/
+SENIVERSE_API_KEY = ""
+
+# Whether to enable Chinese title enhancement and related configurations for title enhancement
+# By adding a title judgment, determine which text is the title and mark it in the metadata;
+# Then the text is flattened with the headings of the next level to achieve the enhancement of the text information.
+ZH_TITLE_ENHANCE = False
+
+# PDF OCR Control: OCR only for images whose width and height exceed a certain percentage of the page (image width/page width, image height/page height).
+# This can avoid the interference of some small pictures in the PDF and improve the processing speed of non-scanned PDFs
+PDF_OCR_THRESHOLD = (0.6, 0.6)
+
+# The initialization introduction of each knowledge base is used to display and the agent call when initializing the knowledge base.
+KB_INFO = {
+    Knowledge Base Name: Knowledge Base Introduction,
+    "samples": "Answers to the issues of this project",
+}
+
+
+# In general, you don't need to change the following
+
+# The default storage path of the knowledge base
+KB_ROOT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge_base")
+if not os.path.exists(KB_ROOT_PATH):
+    os.mkdir(KB_ROOT_PATH)
+# The default storage path of the database.
+# If you use sqlite, you can modify the DB_ROOT_PATH directly; If you are using a different database, modify the SQLALCHEMY_DATABASE_URI directly.
+DB_ROOT_PATH = os.path.join(KB_ROOT_PATH, "info.db")
+SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_ROOT_PATH}"
+
+# Vector library types and corresponding configurations can be selected
+kbs_config = {
+    "faiss": {
+    },
+    "milvus": {
+        "host": "127.0.0.1",
+        "port": "19530",
+        "user": "",
+        "password": "",
+        "secure": False,
+    },
+    "zilliz": {
+        "host": "in01-a7ce524e41e3935.ali-cn-hangzhou.vectordb.zilliz.com.cn",
+        "port": "19530",
+        "user": "",
+        "password": "",
+        "secure": True,
+        },
+    "pg": {
+        "connection_uri": "postgresql://postgres:postgres@127.0.0.1:5432/langchain_chatchat",
+    },
+
+    "es": {
+        "host": "127.0.0.1",
+        "port": "9200",
+        "index_name": "test_index",
+        "user": "",
+        "password": ""
+    },
+    "milvus_kwargs":{
+        "search_params":{"metric_type": "L2"}, #Add search_params here
+        "index_params":{"metric_type": "L2","index_type": "HNSW"} # Add index_params here
+    },
+    "chromadb": {}
+}
+
+# TextSplitter configuration item, if you don't understand the meaning, don't change it.
+text_splitter_dict = {
+    "ChineseRecursiveTextSplitter": {
+        "source": "Huggingface", # If you select TikTokToken, you will use OpenAI's method
+        "tokenizer_name_or_path": "",
+    },
+    "SpacyTextSplitter": {
+        "source": "huggingface",
+        "tokenizer_name_or_path": "gpt2",
+    },
+    "RecursiveCharacterTextSplitter": {
+        "source": "tiktoken",
+        "tokenizer_name_or_path": "cl100k_base",
+    },
+    "MarkdownHeaderTextSplitter": {
+        "headers_to_split_on":
+            [
+                ("#", "head1"),
+                ("##", "head2"),
+                ("###", "head3"),
+                ("####", "head4"),
+            ]
+    },
+}
+
+# TEXT_SPLITTER Name
+TEXT_SPLITTER_NAME = "ChineseRecursiveTextSplitter"
+
+# Embedding model custom word list file
+EMBEDDING_KEYWORD_FILE = "embedding_keywords.txt"

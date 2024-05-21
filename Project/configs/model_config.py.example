@@ -1,0 +1,327 @@
+import os
+
+# You can specify an absolute path to store all the Embedding and LLM models in one place.
+# Each model can be a separate directory or a secondary subdirectory within a directory.
+# If the name of the model directory is the same as the key or value in MODEL_PATH, the program will automatically detect the load without modifying the path in MODEL_PATH.
+MODEL_ROOT_PATH = ""
+
+# Selected Embedding name
+EMBEDDING_MODEL = "bge-large-zh-v1.5"
+
+# Embedding model run device. Set it to "auto" to automatically detect (there will be a warning), or you can manually set it to one of "CUDA", "MPS", "CPU", "XPU".
+EMBEDDING_DEVICE = "auto"
+
+# The Reranker model selected
+RERANKER_MODEL = "bge-reranker-large"
+# Whether to enable the ReRanker model
+USE_RERANKER = False
+RERANKER_MAX_LENGTH = 1024
+
+# Configure if you need to add custom keywords to the EMBEDDING_MODEL
+EMBEDDING_KEYWORD_FILE = "keywords.txt"
+EMBEDDING_MODEL_OUTPUT_PATH = "output"
+
+# The name of the LLM to run, which can include both local and online models. The local models in the list will all be loaded when the project is started.
+# THE FIRST MODEL IN THE LIST WILL BE THE DEFAULT MODEL FOR THE API AND WEBUI.
+# Here, we use two offline models that are currently mainstream, among which chatglm3-6b is the default loading model.
+# If you don't have enough video memory, you can use Qwen-1_8B-Chat, this model FP16 only needs 3.8G video memory.
+
+LLM_MODELS = ["chatglm3-6b", "zhipu-api", "openai-api"]
+Agent_MODEL = None
+
+# LLM model running device. Set it to "Auto" to automatically detect (there will be a warning), or you can manually set it to one of "CUDA", "MPS", "CPU", "XPU".
+LLM_DEVICE = "auto"
+
+HISTORY_LEN = 3
+
+MAX_TOKENS = 2048
+
+TEMPERATURE = 0.7
+
+ONLINE_LLM_MODEL = {
+    "openai-api": {
+        "model_name": "gpt-4",
+        "api_base_url": "https://api.openai.com/v1",
+        "api_key": "",
+        "openai_proxy": "",
+    },
+
+    # Zhipu AI API, please go to http://open.bigmodel.cn for specific registration and API key acquisition
+    "zhipu-api": {
+        "api_key": "",
+        "version": "glm-4",
+        "provider": "ChatGLMWorker",
+    },
+
+    # For more information on how to register and get the API key, please go to https://api.minimax.chat/
+    "minimax-api": {
+        "group_id": "",
+        "api_key": "",
+        "is_pro": False,
+        "provider": "MiniMaxWorker",
+    },
+
+    # For more information on how to register and get the API key, please go to https://xinghuo.xfyun.cn/
+    "xinghuo-api": {
+        "APPID": "",
+        "APISecret": "",
+        "api_key": "",
+        "version": "v3.5", # The version you use of the iFLYTEK Spark model can include "v3.5", "v3.0", "v2.0", "v1.5"
+        "provider": "XingHuoWorker",
+    },
+
+    # Baidu Qianfan API, please refer to https://cloud.baidu.com/doc/WENXINWORKSHOP/s/4lilb2lpf for application method
+    "qianfan-api": {
+        "version": "ERNIE-Bot", # Be case-sensitive. "ERNIE-Bot" or "ERNIE-Bot-turbo" is currently supported, see the official documentation for more information.
+        "version_url": "", # You can also enter the API address of the Qianfan application model release without entering the version
+        "api_key": "",
+        "secret_key": "",
+        "provider": "QianFanWorker",
+    },
+
+    # Volcano Ark API, reference https://www.volcengine.com/docs/82379 for documentation
+    "fangzhou-api": {
+        "version": "", # corresponds to the endpoint_id of Volcano Ark
+        "version_url": "",
+        "api_key": "",
+        "secret_key": "",
+        "provider": "FangZhouWorker",
+    },
+
+    # Alibaba Cloud Tongyi Qianwen API, refer to https://help.aliyun.com/zh/dashscope/developer-reference/api-details for documentation
+    "qwen-api": {
+        "version": "qwen-max",
+        "api_key": "",
+        "provider": "QwenWorker",
+        "embed_model": "text-embedding-v1" # embedding model name
+    },
+
+    # For Baichuan API, please refer to https://www.baichuan-ai.com/home#api-enter for how to apply
+    "baichuan-api": {
+        "version": "Baichuan2-53B",
+        "api_key": "",
+        "secret_key": "",
+        "provider": "BaiChuanWorker",
+    },
+
+    # Azure API
+    "azure-api": {
+        "deployment_name": "", # The name of the deployment container
+        "resource_name": "", # https://{resource_name}.openai.azure.com/openai/ fill in the resource_name part, leave the other parts blank
+        "api_version": "", # The version of the API, not the model version
+        "api_key": "",
+        "provider": "AzureWorker",
+    },
+
+    # Kunlun Tiangong API https://model-platform.tiangong.cn/
+    "tiangong-api": {
+        "version": "SkyChat-MegaVerse",
+        "api_key": "",
+        "secret_key": "",
+        "provider": "TianGongWorker",
+    },
+
+    # Gemini API https://makersuite.google.com/app/apikey
+    "gemini-api": {
+        "api_key": "",
+        "provider": "GeminiWorker",
+    },
+
+    # Claude API : https://www.anthropic.com/api
+    # Available models: 
+    # Claude 3 Opus:    claude-3-opus-20240229 
+    # Claude 3 Sonnet	claude-3-sonnet-20240229
+    # Claude 3 Haiku	claude-3-haiku-20240307
+    "claude-api": {
+        "api_key": "",
+        "version": "2023-06-01",
+        "model_name":"claude-3-opus-20240229", 
+        "provider": "ClaudeWorker",
+    }
+
+}
+
+# Modify the attribute value in the following dictionary to specify the local embedding model storage location. There are 3 ways to set it up:
+# 1. Modify the corresponding value to the absolute path of the model
+# 2, do not modify the value here (take text2vec as an example):
+# 2.1 If any of the following subdirectories exist under {MODEL_ROOT_PATH}:
+#           - text2vec
+# - GanymedeNil/text2vec-large-Chinese
+# - text2vec-large-Chinese
+# 2.2 If the above local path does not exist, the HuggingFace model is used
+
+MODEL_PATH = {
+    "embed_model": {
+        "ernie-tiny": "nghuyong/ernie-3.0-nano-zh",
+        "ernie-base": "nghuyong/ernie-3.0-base-zh",
+        "text2vec-base": "shibing624/text2vec-base-Chinese",
+        "text2vec": "GanymedeNil/text2vec-large-Chinese",
+        "text2vec-paraphrase": "shibing624/text2vec-base-Chinese-paraphrase",
+        "text2vec-sentence": "shibing624/text2vec-base-Chinese-sentence",
+        "text2vec-multilingual": "shibing624/text2vec-base-multilingual",
+        "text2vec-bge-large-Chinese": "shibing624/text2vec-bge-large-Chinese",
+        "m3e-small": "moka-ai/m3e-small",
+        "m3e-base": "moka-ai/m3e-base",
+        "m3e-large": "moka-ai/m3e-large",
+
+        "bge-small-zh": "BAAI/bge-small-zh",
+        "bge-base-zh": "BAAI/bge-base-zh",
+        "bge-large-zh": "BAAI/bge-large-zh",
+        "bge-large-zh-noinstruct": "BAAI/bge-large-zh-noinstruct",
+        "bge-base-zh-v1.5": "BAAI/bge-base-zh-v1.5",
+        "bge-large-zh-v1.5": "BAAI/bge-large-zh-v1.5",
+
+        "bge-m3": "BAAI/bge-m3",
+
+        "piccolo-base-zh": "sensenova/piccolo-base-zh",
+        "piccolo-large-zh": "sensenova/piccolo-large-zh",
+        "nlp_gte_sentence-embedding_Chinese-large": "damo/nlp_gte_sentence-embedding_Chinese-large",
+        "text-embedding-ada-002": "your OPENAI_API_KEY",
+    },
+
+    "llm_model": {
+        "chatglm2-6b": "THUDM/chatglm2-6b",
+        "chatglm2-6b-32k": "THUDM/chatglm2-6b-32k",
+        "chatglm3-6b": "THUDM/chatglm3-6b",
+        "chatglm3-6b-32k": "THUDM/chatglm3-6b-32k",
+
+        "Orion-14B-Chat": "OrionStarAI/Orion-14B-Chat",
+        "Orion-14B-Chat-Plugin": "OrionStarAI/Orion-14B-Chat-Plugin",
+        "Orion-14B-LongChat": "OrionStarAI/Orion-14B-LongChat",
+
+        "Llama-2-7b-chat-hf": "meta-llama/Llama-2-7b-chat-hf",
+        "Llama-2-13b-chat-hf": "meta-llama/Llama-2-13b-chat-hf",
+        "Llama-2-70b-chat-hf": "meta-llama/Llama-2-70b-chat-hf",
+
+        "Qwen-1_8B-Chat": "Qwen/Qwen-1_8B-Chat",
+        "Qwen-7B-Chat": "Qwen/Qwen-7B-Chat",
+        "Qwen-14B-Chat": "Qwen/Qwen-14B-Chat",
+        "Qwen-72B-Chat": "Qwen/Qwen-72B-Chat",
+
+        # There may be a problem with the Qwen1.5 model VLLM
+        "Qwen1.5-0.5B-Chat": "Qwen/Qwen1.5-0.5B-Chat",
+        "Qwen1.5-1.8B-Chat": "Qwen/Qwen1.5-1.8B-Chat",
+        "Qwen1.5-4B-Chat": "Qwen/Qwen1.5-4B-Chat",
+        "Qwen1.5-7B-Chat": "Qwen/Qwen1.5-7B-Chat",
+        "Qwen1.5-14B-Chat": "Qwen/Qwen1.5-14B-Chat",
+        "Qwen1.5-72B-Chat": "Qwen/Qwen1.5-72B-Chat",
+
+        "baichuan-7b-chat": "baichuan-inc/Baichuan-7B-Chat",
+        "baichuan-13b-chat": "baichuan-inc/Baichuan-13B-Chat",
+        "baichuan2-7b-chat": "baichuan-inc/Baichuan2-7B-Chat",
+        "baichuan2-13b-chat": "baichuan-inc/Baichuan2-13B-Chat",
+
+        "internlm-7b": "internlm/internlm-7b",
+        "internlm-chat-7b": "internlm/internlm-chat-7b",
+        "internlm2-chat-7b": "internlm/internlm2-chat-7b",
+        "internlm2-chat-20b": "internlm/internlm2-chat-20b",
+
+        "BlueLM-7B-Chat": "vivo-ai/BlueLM-7B-Chat",
+        "BlueLM-7B-Chat-32k": "vivo-ai/BlueLM-7B-Chat-32k",
+
+        "Yi-34B-Chat": "https://huggingface.co/01-ai/Yi-34B-Chat",
+
+        "agentlm-7b": "THUDM/agentlm-7b",
+        "agentlm-13b": "THUDM/agentlm-13b",
+        "agentlm-70b": "THUDM/agentlm-70b",
+
+        "falcon-7b": "tiiuae/falcon-7b",
+        "falcon-40b": "tiiuae/falcon-40b",
+        "falcon-rw-7b": "tiiuae/falcon-rw-7b",
+
+        "aquila-7b": "BAAI/Aquila-7B",
+        "aquilachat-7b": "BAAI/AquilaChat-7B",
+        "open_llama_13b": "openlm-research/open_llama_13b",
+        "vicuna-13b-v1.5": "lmsys/vicuna-13b-v1.5",
+        "koala": "young-geng/koala",
+        "mpt-7b": "mosaicml/mpt-7b",
+        "mpt-7b-storywriter": "mosaicml/mpt-7b-storywriter",
+        "mpt-30b": "mosaicml/mpt-30b",
+        "opt-66b": "facebook/opt-66b",
+        "opt-iml-max-30b": "facebook/opt-iml-max-30b",
+        "gpt2": "gpt2",
+        "gpt2-xl": "gpt2-xl",
+        "gpt-j-6b": "EleutherAI/gpt-j-6b",
+        "gpt4all-j": "nomic-ai/gpt4all-j",
+        "gpt-neox-20b": "EleutherAI/gpt-neox-20b",
+        "pythia-12b": "EleutherAI/pythia-12b",
+        "oasst-sft-4-pythia-12b-epoch-3.5": "OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5",
+        "dolly-v2-12b": "databricks/dolly-v2-12b",
+        "stablelm-tuned-alpha-7b": "stabilityai/stablelm-tuned-alpha-7b",
+    },
+
+    "reranker": {
+        "bge-reranker-large": "BAAI/bge-reranker-large",
+        "bge-reranker-base": "BAAI/bge-reranker-base",
+    }
+}
+
+# In general, you don't need to change the following
+
+# nltk model storage path
+NLTK_DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "nltk_data")
+
+# If you use VLLM, the model inference capability may be reduced, and the agent task cannot be completed
+VLLM_MODEL_DICT = {
+    "chatglm2-6b": "THUDM/chatglm2-6b",
+    "chatglm2-6b-32k": "THUDM/chatglm2-6b-32k",
+    "chatglm3-6b": "THUDM/chatglm3-6b",
+    "chatglm3-6b-32k": "THUDM/chatglm3-6b-32k",
+
+    "Llama-2-7b-chat-hf": "meta-llama/Llama-2-7b-chat-hf",
+    "Llama-2-13b-chat-hf": "meta-llama/Llama-2-13b-chat-hf",
+    "Llama-2-70b-chat-hf": "meta-llama/Llama-2-70b-chat-hf",
+
+    "Qwen-1_8B-Chat": "Qwen/Qwen-1_8B-Chat",
+    "Qwen-7B-Chat": "Qwen/Qwen-7B-Chat",
+    "Qwen-14B-Chat": "Qwen/Qwen-14B-Chat",
+    "Qwen-72B-Chat": "Qwen/Qwen-72B-Chat",
+
+    "baichuan-7b-chat": "baichuan-inc/Baichuan-7B-Chat",
+    "baichuan-13b-chat": "baichuan-inc/Baichuan-13B-Chat",
+    "baichuan2-7b-chat": "baichuan-inc/Baichuan-7B-Chat",
+    "baichuan2-13b-chat": "baichuan-inc/Baichuan-13B-Chat",
+
+    "BlueLM-7B-Chat": "vivo-ai/BlueLM-7B-Chat",
+    "BlueLM-7B-Chat-32k": "vivo-ai/BlueLM-7B-Chat-32k",
+
+    "internlm-7b": "internlm/internlm-7b",
+    "internlm-chat-7b": "internlm/internlm-chat-7b",
+    "internlm2-chat-7b": "internlm/Models/internlm2-chat-7b",
+    "internlm2-chat-20b": "internlm/Models/internlm2-chat-20b",
+
+    "aquila-7b": "BAAI/Aquila-7B",
+    "aquilachat-7b": "BAAI/AquilaChat-7B",
+
+    "falcon-7b": "tiiuae/falcon-7b",
+    "falcon-40b": "tiiuae/falcon-40b",
+    "falcon-rw-7b": "tiiuae/falcon-rw-7b",
+    "gpt2": "gpt2",
+    "gpt2-xl": "gpt2-xl",
+    "gpt-j-6b": "EleutherAI/gpt-j-6b",
+    "gpt4all-j": "nomic-ai/gpt4all-j",
+    "gpt-neox-20b": "EleutherAI/gpt-neox-20b",
+    "pythia-12b": "EleutherAI/pythia-12b",
+    "oasst-sft-4-pythia-12b-epoch-3.5": "OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5",
+    "dolly-v2-12b": "databricks/dolly-v2-12b",
+    "stablelm-tuned-alpha-7b": "stabilityai/stablelm-tuned-alpha-7b",
+    "open_llama_13b": "openlm-research/open_llama_13b",
+    "vicuna-13b-v1.3": "lmsys/vicuna-13b-v1.3",
+    "koala": "young-geng/koala",
+    "mpt-7b": "mosaicml/mpt-7b",
+    "mpt-7b-storywriter": "mosaicml/mpt-7b-storywriter",
+    "mpt-30b": "mosaicml/mpt-30b",
+    "opt-66b": "facebook/opt-66b",
+    "opt-iml-max-30b": "facebook/opt-iml-max-30b",
+
+}
+
+SUPPORT_AGENT_MODEL = [
+    "openai-api", # GPT4 model
+    "qwen-api", # Qwen Max model
+    "zhipu-api", # Zhipu AI GLM4 model
+    "Qwen", # All Qwen series local models
+    "chatglm3-6b",
+    "internlm2-chat-20b",
+    "Orion-14B-Chat-Plugin",
+]

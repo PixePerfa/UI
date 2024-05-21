@@ -1,0 +1,139 @@
+import sys
+from configs.model_config import LLM_DEVICE
+
+# The default timeout for httpx requests (seconds). If the loading model or dialog is slow and a timeout error occurs, you can increase the value appropriately.
+HTTPX_DEFAULT_TIMEOUT = 300.0
+
+# Whether to enable cross-origin API is set to False by default, if you need to enable it, set it to True
+# is open cross domain
+OPEN_CROSS_DOMAIN = False
+
+# Each server is bound to the host by default. If you change this parameter to 0.0.0.0, you need to change the hosts of all the XX_SERVER below
+DEFAULT_BIND_HOST = "0.0.0.0" if sys.platform != "win32" else "127.0.0.1"
+
+# webui.py server
+WEBUI_SERVER = {
+    "host": DEFAULT_BIND_HOST,
+    "port": 8501,
+}
+
+# api.py server
+API_SERVER = {
+    "host": DEFAULT_BIND_HOST,
+    "port": 7861,
+}
+
+# fastchat openai_api server
+FSCHAT_OPENAI_API = {
+    "host": DEFAULT_BIND_HOST,
+    "port": 20000,
+}
+
+# fastchat model_worker server
+# These models must be model_config. MODEL_PATH or ONLINE_MODEL correctly configured.
+# When starting startup.py, you can specify the model by '--model-name xxxx yyyy', or LLM_MODELS if you don't specify it
+FSCHAT_MODEL_WORKERS = {
+    # The default configuration that is common to all models can be overridden in the model-specific configuration.
+    "default": {
+        "host": DEFAULT_BIND_HOST,
+        "port": 20002,
+        "device": LLM_DEVICE,
+        # False, 'vllm', the inference acceleration framework used, if there is a HuggingFace communication problem, see doc/FAQ
+        # VLLM support for some models is not yet mature and is temporarily disabled by default
+        "infer_turbo": False,
+
+        # Load the parameters that need to be configured model_worker multi-card
+        # "gpus": None, # The GPU used should be specified in the format of str, such as "0,1", and if invalid, please specify it in the form of CUDA_VISIBLE_DEVICES="0,1".
+        # "num_gpus": 1, # Number of GPUs used
+        # "max_gpu_memory": "20GiB", # The maximum amount of video memory used by each GPU
+
+        # The following are model_worker non-essential parameters, which can be configured as needed
+        # "load_8bit": False, # 8-bit quantization is enabled
+        # "cpu_offloading": None,
+        # "gptq_ckpt": None,
+        # "gptq_wbits": 16,
+        # "gptq_groupsize": -1,
+        # "gptq_act_order": False,
+        # "awq_ckpt": None,
+        # "awq_wbits": 16,
+        # "awq_groupsize": -1,
+        # "model_names": LLM_MODELS,
+        # "conv_template": None,
+        # "limit_worker_concurrency": 5,
+        # "stream_interval": 2,
+        # "no_register": False,
+        # "embed_in_truncate": False,
+
+        # The following are the vllm_worker configuration parameters, note that you must have a GPU to use vllm, and only pass the Linux test
+
+        # tokenizer = model_path # If the tokenizer is inconsistent with the model_path, add it here
+        # 'tokenizer_mode':'auto',
+        # 'trust_remote_code':True,
+        # 'download_dir':None,
+        # 'load_format':'auto',
+        # 'dtype':'auto',
+        # 'seed':0,
+        # 'worker_use_ray':False,
+        # 'pipeline_parallel_size':1,
+        # 'tensor_parallel_size':1,
+        # 'block_size':16,
+        # 'swap_space':4 , # GiB
+        # 'gpu_memory_utilization':0.90,
+        # 'max_num_batched_tokens':2560,
+        # 'max_num_seqs':256,
+        # 'disable_log_stats':False,
+        # 'conv_template':None,
+        # 'limit_worker_concurrency':5,
+        # 'no_register':False,
+        # 'num_gpus': 1
+        # 'engine_use_ray': False,
+        # 'disable_log_requests': False
+
+    },
+    "chatglm3-6b": {
+        "device": "cuda",
+    },
+    "Qwen1.5-0.5B-Chat": {
+        "device": "cuda",
+    },
+    # The following configuration can be set in the model_config without modification
+    "zhipu-api": {
+        "port": 21001,
+    },
+    "minimax-api": {
+        "port": 21002,
+    },
+    "xinghuo-api": {
+        "port": 21003,
+    },
+    "qianfan-api": {
+        "port": 21004,
+    },
+    "fangzhou-api": {
+        "port": 21005,
+    },
+    "qwen-api": {
+        "port": 21006,
+    },
+    "baichuan-api": {
+        "port": 21007,
+    },
+    "azure-api": {
+        "port": 21008,
+    },
+    "tiangong-api": {
+        "port": 21009,
+    },
+    "gemini-api": {
+        "port": 21010,
+    },
+    "claude-api": {
+        "port": 21011,
+    },
+}
+
+FSCHAT_CONTROLLER = {
+    "host": DEFAULT_BIND_HOST,
+    "port": 20001,
+    "dispatch_method": "shortest_queue",
+}
