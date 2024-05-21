@@ -20,20 +20,19 @@ METAPHOR_API_KEY = ""
 SENIVERSE_API_KEY = ""
 PDF_OCR_THRESHOLD = (0.6, 0.6)
 KB_INFO = {
-    Knowledge Base Name: Knowledge Base Introduction,
+    "Knowledge Base Name": "Knowledge Base Introduction",
     "samples": "Answers to the issues of this project",
 }
 
 KB_ROOT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge_base")
 if not os.path.exists(KB_ROOT_PATH):
     os.mkdir(KB_ROOT_PATH)
-# The default storage path of the database .If you use sqlite, you can modify the DB_ROOT_PATH directly; If you are using a different database, modify the SQLALCHEMY_DATABASE_URI directly.
+# The default storage path of the database. If you use sqlite, you can modify the DB_ROOT_PATH directly; If you are using a different database, modify the SQLALCHEMY_DATABASE_URI directly.
 DB_ROOT_PATH = os.path.join(KB_ROOT_PATH, "info.db")
 SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_ROOT_PATH}"
 
 kbs_config = {
-    "faiss": {
-    },
+    "faiss": {},
     "milvus": {
         "host": "0.0.0.0",
         "port": "19530",
@@ -41,7 +40,6 @@ kbs_config = {
         "password": "",
         "secure": False,
     },
-
     "es": {
         "host": "0.0.0.0",
         "port": "9200",
@@ -49,16 +47,17 @@ kbs_config = {
         "user": "",
         "password": ""
     },
-    "milvus_kwargs":{
-        "search_params":{"metric_type": "L2"}, #Add search_params here
-        "index_params":{"metric_type": "L2","index_type": "HNSW"} # Add index_params here
+    "milvus_kwargs": {
+        "search_params": {"metric_type": "L2"},  # Add search_params here
+        "index_params": {"metric_type": "L2", "index_type": "HNSW"}  # Add index_params here
     },
     "chromadb": {}
 }
+
 text_splitter_dict = {
     "ChineseRecursiveTextSplitter": {
-        "source": "Huggingface", 
-        "tokenizer_name_or_path": "",
+        "source": "Huggingface",
+        "tokenizer_name_or_path": "models/all-MiniLM-L6-v2/tokenizer.json",  # Update this line with the tokenizer path
     },
     "SpacyTextSplitter": {
         "source": "huggingface",
@@ -69,13 +68,12 @@ text_splitter_dict = {
         "tokenizer_name_or_path": "cl100k_base",
     },
     "MarkdownHeaderTextSplitter": {
-        "headers_to_split_on":
-            [
-                ("#", "head1"),
-                ("##", "head2"),
-                ("###", "head3"),
-                ("####", "head4"),
-            ]
+        "headers_to_split_on": [
+            ("#", "head1"),
+            ("##", "head2"),
+            ("###", "head3"),
+            ("####", "head4"),
+        ]
     },
 }
 
@@ -84,3 +82,11 @@ TEXT_SPLITTER_NAME = "ChineseRecursiveTextSplitter"
 
 # Embedding model custom word list file
 EMBEDDING_KEYWORD_FILE = "embedding_keywords.txt"
+
+# Configuration for the embedding model
+embedding_model_config = {
+    "model_name": "all-MiniLM-L6-v2",
+    "path": "models/all-MiniLM-L6-v2/onnx/model_quantized.onnx",  # Path to the ONNX model
+    "config_path": "models/all-MiniLM-L6-v2/config.json",  # Path to the model configuration
+    "tokenizer_path": "models/all-MiniLM-L6-v2/tokenizer.json",  # Path to the tokenizer configuration
+}
