@@ -1,10 +1,8 @@
 import os
 
 DEFAULT_KNOWLEDGE_BASE = "samples"
-# Optional: faiss, milvus (offline) & pgvector, chromadb full-text search engine es
-DEFAULT_VS_TYPE = "faiss"
+DEFAULT_VS_TYPE = "faiss"  # Set your default vector store type
 
-# Number of cached vector libraries (for FAISS)
 CACHED_VS_NUM = 3
 CACHED_MEMO_VS_NUM = 10
 CHUNK_SIZE = 250
@@ -27,7 +25,7 @@ KB_INFO = {
 KB_ROOT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge_base")
 if not os.path.exists(KB_ROOT_PATH):
     os.mkdir(KB_ROOT_PATH)
-# The default storage path of the database. If you use sqlite, you can modify the DB_ROOT_PATH directly; If you are using a different database, modify the SQLALCHEMY_DATABASE_URI directly.
+
 DB_ROOT_PATH = os.path.join(KB_ROOT_PATH, "info.db")
 SQLALCHEMY_DATABASE_URI = f"sqlite:///{DB_ROOT_PATH}"
 
@@ -47,17 +45,21 @@ kbs_config = {
         "user": "",
         "password": ""
     },
-    "milvus_kwargs": {
-        "search_params": {"metric_type": "L2"},  # Add search_params here
-        "index_params": {"metric_type": "L2", "index_type": "HNSW"}  # Add index_params here
+    "qdrant": {
+        "host": "localhost",
+        "port": "6333"
     },
-    "chromadb": {}
+    "chroma": {},
+    "redis": {
+        "host": "localhost",
+        "port": "6379"
+    }
 }
 
 text_splitter_dict = {
     "ChineseRecursiveTextSplitter": {
         "source": "Huggingface",
-        "tokenizer_name_or_path": "models/all-MiniLM-L6-v2/tokenizer.json",  # Update this line with the tokenizer path
+        "tokenizer_name_or_path": "models/all-MiniLM-L6-v2/tokenizer.json",
     },
     "SpacyTextSplitter": {
         "source": "huggingface",
@@ -77,16 +79,12 @@ text_splitter_dict = {
     },
 }
 
-# TEXT_SPLITTER Name
 TEXT_SPLITTER_NAME = "ChineseRecursiveTextSplitter"
-
-# Embedding model custom word list file
 EMBEDDING_KEYWORD_FILE = "embedding_keywords.txt"
 
-# Configuration for the embedding model
 embedding_model_config = {
     "model_name": "all-MiniLM-L6-v2",
-    "path": "models/all-MiniLM-L6-v2/onnx/model_quantized.onnx",  # Path to the ONNX model
-    "config_path": "models/all-MiniLM-L6-v2/config.json",  # Path to the model configuration
-    "tokenizer_path": "models/all-MiniLM-L6-v2/tokenizer.json",  # Path to the tokenizer configuration
+    "path": "models/all-MiniLM-L6-v2/onnx/model_quantized.onnx",
+    "config_path": "models/all-MiniLM-L6-v2/config.json",
+    "tokenizer_path": "models/all-MiniLM-L6-v2/tokenizer.json",
 }
