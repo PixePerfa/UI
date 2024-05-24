@@ -2,3 +2,4 @@ Get access Windows files
 takeown /f "C:\Program Files\WindowsApps" /r /d y
 icacls "C:\Users\l\Desktop\Console" /grant "$($env:USERNAME):F" /t
 attrib -h -s "C:\Users\l\Desktop\Console" /D /S               (Makes sure there are no hidden files)
+Remove-Item -Recurse -Force "Console"
