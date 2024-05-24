@@ -1,2 +1,3 @@
 Get access Windows files
 takeown /f "C:\Program Files\WindowsApps" /r /d y
+icacls "C:\Users\l\Desktop\Console" /grant "$($env:USERNAME):F" /t
